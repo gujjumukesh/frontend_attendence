@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
 
 // Pages
 import Index from "./pages/Index";
@@ -20,6 +20,7 @@ import StudentAttendance from "./pages/StudentAttendance";
 import AuthGuard from "./components/AuthGuard";
 import DashboardLayout from "./components/DashboardLayout";
 import RoleGuard from "./components/RoleGuard";
+import StudentLayout from "./components/StudentLayout";
 
 const queryClient = new QueryClient();
 
@@ -50,17 +51,19 @@ const App = () => (
             <Route path="settings" element={<Settings />} />
           </Route>
 
-          {/* 3. STUDENT Route - Simplified to avoid 404 */}
-          <Route 
-            path="/student" 
+          {/* 3. STUDENT Routes */}
+          <Route
+            path="/student"
             element={
               <AuthGuard>
                 <RoleGuard requiredRole="student">
-                  <StudentAttendance />
+                  <StudentLayout />
                 </RoleGuard>
               </AuthGuard>
-            } 
-          />
+            }
+          >
+            <Route index element={<StudentAttendance />} />
+          </Route>
           
           {/* Catch all for 404 */}
           <Route path="*" element={<NotFound />} />
