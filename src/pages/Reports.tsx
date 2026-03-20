@@ -320,7 +320,7 @@ const Reports = () => {
             <div className="flex justify-between items-center p-4 bg-gray-50 rounded-lg">
               <div className="flex items-center">
                 <Users className="text-blue-500 mr-3" size={20} />
-                <span className="font-medium">Total Students</span>
+                <span className="font-medium">Total Attendence</span>
               </div>
               <span className="text-xl font-bold">
                 {courseData.reduce((sum, course) => sum + course.totalStudents, 0)}
