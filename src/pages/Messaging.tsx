@@ -174,8 +174,8 @@ const Messaging: React.FC = () => { // Define as Functional Component
                  throw new Error(`Invalid phone number`);
              }
 
-            // Use VITE_API_BASE_URL for production, fallback to relative for local development proxy
-            const baseUrl = import.meta.env.VITE_API_BASE_URL || '';
+            // In dev, prefer Vite's `/api` proxy; in prod use configured base URL.
+            const baseUrl = import.meta.env.DEV ? "" : (import.meta.env.VITE_API_BASE_URL || "");
             const response = await fetch(`${baseUrl}/api/send-sms`, { // Ensure this API route exists
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },

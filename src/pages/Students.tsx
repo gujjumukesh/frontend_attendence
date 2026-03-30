@@ -148,8 +148,9 @@ const Students = () => {
         >
           <option value="All Branches">All Branches</option>
           <option value="CSE">CSE</option>
+          <option value="AI">CSE</option>
           <option value="ECE">ECE</option>
-          <option value="MECH">MECH</option>
+          <option value="ME">MECH</option>
         </select>
       </div>
 

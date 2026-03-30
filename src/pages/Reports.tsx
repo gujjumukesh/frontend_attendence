@@ -9,8 +9,7 @@ import {
   Bar, 
   XAxis, 
   YAxis, 
-  CartesianGrid, 
-  Tooltip, 
+  CartesianGrid,   Tooltip, 
   Legend, 
   ResponsiveContainer,
   PieChart,
@@ -28,147 +27,173 @@ const Reports = () => {
   const authData = JSON.parse(localStorage.getItem('bioattend-auth') || '{}');
   const currentCollege = authData.college || '';
 
-  useEffect(() => {
-    const fetchWeeklyAttendance = async () => {
-      try {
-        let startDate, endDate;
-        const today = new Date();
+  // Fetch attendance data (using only today_attendence table)
+  const fetchWeeklyAttendance = async () => {
+    try {
+      let startDate, endDate;
+      const today = new Date();
 
-        switch(dateRange) {
-          case "Today":
-            startDate = today.toISOString().split('T')[0];
-            endDate = startDate;
-            break;
-          case "This Week":
-            // Create a new date object to avoid modifying the original
-            const weekStart = new Date(today);
-            weekStart.setDate(today.getDate() - today.getDay());
-            startDate = weekStart.toISOString().split('T')[0];
-            
-            const weekEnd = new Date(today);
-            weekEnd.setDate(today.getDate() - today.getDay() + 6);
-            endDate = weekEnd.toISOString().split('T')[0];
-            break;
-          case "This Month":
-            startDate = new Date(today.getFullYear(), today.getMonth(), 1).toISOString().split('T')[0];
-            endDate = new Date(today.getFullYear(), today.getMonth() + 1, 0).toISOString().split('T')[0];
-            break;
-          case "This Semester":
-            // Assuming a semester is 6 months
-            const currentMonth = today.getMonth();
-            // First semester: Jan-Jun, Second semester: Jul-Dec
-            const semesterStart = new Date(today.getFullYear(), currentMonth < 6 ? 0 : 6, 1);
-            const semesterEnd = new Date(today.getFullYear(), currentMonth < 6 ? 5 : 11, 31);
-            startDate = semesterStart.toISOString().split('T')[0];
-            endDate = semesterEnd.toISOString().split('T')[0];
-            break;
-          default:
-            startDate = today.toISOString().split('T')[0];
-            endDate = startDate;
-        }
-
-        // Fetch both attendance and absent data
-        let [{ data: weeklyData, error: weeklyError }, { data: absentData, error: absentError }] = await Promise.all([
-          supabase
-            .from('today_attendence')
-            .select('*')
-            .gte('date', startDate)
-            .lte('date', endDate)
-            .eq('college', currentCollege)
-            .order('date', { ascending: true }),
-          supabase
-            .from('today_absent')
-            .select('*')
-            .gte('date', startDate)
-            .lte('date', endDate)
-            .eq('college', currentCollege)
-            .order('date', { ascending: true })
-        ]);
-
-        if (weeklyError) throw weeklyError;
-        if (absentError) throw absentError;
-
-        if ((!weeklyData || weeklyData.length === 0) && (!absentData || absentData.length === 0)) {
-          console.log('No attendance data found for the selected period');
-          setWeeklyData([]);
-          setCourseData([]);
-          return;
-        }
-
-        let filteredWeeklyData = weeklyData;
-        if (course !== 'All Branches') {
-          filteredWeeklyData = weeklyData.filter(record => record.branch === course);
-        }
-
-
-        // Group data by date and branch, then aggregate presents/absents
-        const dailyAggregates: Record<string, { total_presents: number, total_absents: number }> = {};
-        
-        // Process attendance data
-        (filteredWeeklyData || []).forEach(record => {
-          if (!record || !record.date) return;
-          const date = record.date;
-          if (!dailyAggregates[date]) {
-            dailyAggregates[date] = {
-              total_presents: 0,
-              total_absents: 0
-            };
-          }
-          dailyAggregates[date].total_presents += record.status === 'Present' ? 1 : 0;
-        });
-
-        // Process absent data
-        (absentData || []).forEach(record => {
-          if (!record || !record.date) return;
-          const date = record.date;
-          if (!dailyAggregates[date]) {
-            dailyAggregates[date] = {
-              total_presents: 0,
-              total_absents: 0
-            };
-          }
-          dailyAggregates[date].total_absents += 1;
-        });
-
-        const formattedWeeklyData = Object.entries(dailyAggregates).map(([date, stats]) => ({
-          day: new Date(date).toLocaleDateString('en-US', { weekday: 'long' }),
-          present: stats.total_presents,
-          absent: stats.total_absents
-        }));
-
-        setWeeklyData(formattedWeeklyData);
-
-        // Calculate course-wise attendance data
-        let courseWiseData = [];
-        
-        if (filteredWeeklyData.length > 0) {
-          // Get unique branches
-          const branches = [...new Set(filteredWeeklyData.map(record => record.branch).filter(Boolean))];
+      switch(dateRange) {
+        case "Today":
+          startDate = today.toISOString().split('T')[0];
+          endDate = startDate;
+          break;
+        case "This Week":
+          const weekStart = new Date(today);
+          weekStart.setDate(today.getDate() - today.getDay());
+          startDate = weekStart.toISOString().split('T')[0];
           
-          // For each branch, calculate attendance percentage and total students
-          courseWiseData = branches.map(branchName => {
-            const branchRecords = filteredWeeklyData.filter(record => record.branch === branchName);
-            const totalPresent = branchRecords.filter(record => record.status === 'Present').length;
-            const totalAbsent = branchRecords.filter(record => record.status === 'Absent').length;
-            const total = totalPresent + totalAbsent;
-            
-            return {
-              name: branchName || 'Unknown',
-              attendance: total > 0 ? Math.round((totalPresent / total) * 100) : 0,
-              totalStudents: total
-            };
-          });
+          const weekEnd = new Date(today);
+          weekEnd.setDate(today.getDate() - today.getDay() + 6);
+          endDate = weekEnd.toISOString().split('T')[0];
+          break;
+        case "This Month":
+          startDate = new Date(today.getFullYear(), today.getMonth(), 1).toISOString().split('T')[0];
+          endDate = new Date(today.getFullYear(), today.getMonth() + 1, 0).toISOString().split('T')[0];
+          break;
+        case "This Semester":
+          const currentMonth = today.getMonth();
+          const semesterStart = new Date(today.getFullYear(), currentMonth < 6 ? 0 : 6, 1);
+          const semesterEnd = new Date(today.getFullYear(), currentMonth < 6 ? 5 : 11, 31);
+          startDate = semesterStart.toISOString().split('T')[0];
+          endDate = semesterEnd.toISOString().split('T')[0];
+          break;
+        default:
+          startDate = today.toISOString().split('T')[0];
+          endDate = startDate;
+      }
+
+      // Fetch ONLY from today_attendence (contains both present and absent via status field)
+      const { data: attendanceData, error } = await supabase
+        .from('today_attendence')
+        .select('*')
+        .gte('date', startDate)
+        .lte('date', endDate)
+        .eq('college', currentCollege)
+        .order('date', { ascending: true });
+
+      if (error) throw error;
+
+      if (!attendanceData || attendanceData.length === 0) {
+        setWeeklyData([]);
+        setCourseData([]);
+        setDailyAggregates({});
+        return;
+      }
+
+      // Filter by course if not "All Branches"
+      let filteredData = attendanceData;
+      if (course !== 'All Branches') {
+        filteredData = attendanceData.filter(record => record.branch === course);
+      }
+
+      // Aggregate daily data (presents and absents from status field)
+      const dailyAggregates: Record<string, { total_presents: number, total_absents: number }> = {};
+      
+      filteredData.forEach(record => {
+        if (!record || !record.date) return;
+        const date = record.date;
+        if (!dailyAggregates[date]) {
+          dailyAggregates[date] = {
+            total_presents: 0,
+            total_absents: 0
+          };
+        }
+        
+        if (record.status === 'Present') {
+          dailyAggregates[date].total_presents += 1;
+        } else if (record.status === 'Absent') {
+          dailyAggregates[date].total_absents += 1;
+        }
+      });
+
+      // Format for chart based on selected date range
+      const chartAggregates: Record<string, { present: number, absent: number }> = {};
+      
+      filteredData.forEach(record => {
+        if (!record || !record.date) return;
+        const recordDate = new Date(record.date);
+        let label = record.date;
+
+        if (dateRange === "Today") {
+          label = "Today";
+        } else if (dateRange === "This Week") {
+          label = recordDate.toLocaleDateString('en-US', { weekday: 'long' });
+        } else if (dateRange === "This Month") {
+          const day = recordDate.getDate();
+          if (day <= 7) label = 'Week 1';
+          else if (day <= 14) label = 'Week 2';
+          else if (day <= 21) label = 'Week 3';
+          else label = 'Week 4';
+        } else if (dateRange === "This Semester") {
+          label = recordDate.toLocaleDateString('en-US', { month: 'short' });
         }
 
-        setCourseData(courseWiseData);
-        setDailyAggregates(dailyAggregates);
-      } catch (error) {
-        console.error('Error fetching attendance data:', error);
-      }
-    };
+        if (!chartAggregates[label]) {
+          chartAggregates[label] = { present: 0, absent: 0 };
+        }
+        
+        if (record.status === 'Present') {
+          chartAggregates[label].present += 1;
+        } else if (record.status === 'Absent') {
+          chartAggregates[label].absent += 1;
+        }
+      });
 
+      const formattedWeeklyData = Object.entries(chartAggregates).map(([label, stats]) => ({
+        label: label,
+        present: stats.present,
+        absent: stats.absent
+      }));
+
+      setWeeklyData(formattedWeeklyData);
+
+      // Calculate course-wise data
+      let courseWiseData = [];
+      
+      if (filteredData.length > 0) {
+        const branches = [...new Set(filteredData.map(record => record.branch).filter(Boolean))];
+        
+        courseWiseData = branches.map(branchName => {
+          const branchRecords = filteredData.filter(record => record.branch === branchName);
+          const totalPresent = branchRecords.filter(record => record.status === 'Present').length;
+          const totalAbsent = branchRecords.filter(record => record.status === 'Absent').length;
+          const total = totalPresent + totalAbsent;
+          
+          return {
+            name: branchName || 'Unknown',
+            attendance: total > 0 ? Math.round((totalPresent / total) * 100) : 0,
+            totalStudents: total
+          };
+        });
+      }
+
+      setCourseData(courseWiseData);
+      setDailyAggregates(dailyAggregates);
+    } catch (error) {
+      console.error('Error fetching attendance data:', error);
+    }
+  };
+
+  // Initial fetch and refetch on filter changes
+  useEffect(() => {
     fetchWeeklyAttendance();
   }, [dateRange, course]);
+
+  // REAL-TIME SUBSCRIPTION (key fix)
+  useEffect(() => {
+    const attendanceSubscription = supabase
+      .channel('attendance_changes_reports')
+      .on('postgres_changes', 
+        { event: '*', schema: 'public', table: 'today_attendence', filter: `college=eq.${currentCollege}` },
+        fetchWeeklyAttendance
+      )
+      .subscribe();
+
+    return () => {
+      attendanceSubscription.unsubscribe();
+    };
+  }, [currentCollege]); // Resubscribe if college changes
 
   const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#8884D8"];
 
@@ -275,7 +300,7 @@ const Reports = () => {
               margin={{ top: 20, right: 30, left: 20, bottom: 10 }}
             >
               <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="day" />
+              <XAxis dataKey="label" />
               <YAxis />
               <Tooltip />
               <Legend />
@@ -313,7 +338,7 @@ const Reports = () => {
           </div>
         </div>
 
-        {/* Attendance Summary */}
+        {/* Attendance Summary - NOW REAL-TIME */}
         <div className="bg-white p-6 rounded-xl shadow-sm">
           <h2 className="text-xl font-bold text-gray-800 mb-6">Attendance Summary</h2>
           <div className="space-y-4">
@@ -338,8 +363,7 @@ const Reports = () => {
                   : 0}%
               </span>
             </div>
-            
-            <div className="flex justify-between items-center p-4 bg-red-50 rounded-lg">
+                        <div className="flex justify-between items-center p-4 bg-red-50 rounded-lg">
               <div className="flex items-center">
                 <BarChart3 className="text-red-500 mr-3" size={20} />
                 <span className="font-medium">Total Present</span>
