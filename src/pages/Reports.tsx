@@ -230,10 +230,11 @@ const Reports = () => {
                 onChange={(e) => setCourse(e.target.value)}
               >
                 <option>All Branches</option>
-                <option>Computer Science</option>
-                <option>Electrical</option>
-                <option>Mechanical</option>
-                <option>Civil</option>
+                <option>CSE</option>
+                <option>EEE</option>
+                <option>ME</option>
+                <option>CE</option>
+                <option>AI</option>
               </select>
             </div>
           </div>
