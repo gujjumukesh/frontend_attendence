@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { BarChart3, CalendarRange, DownloadCloud, Filter, Users } from "lucide-react";
@@ -9,7 +8,8 @@ import {
   Bar, 
   XAxis, 
   YAxis, 
-  CartesianGrid,   Tooltip, 
+  CartesianGrid,   
+  Tooltip, 
   Legend, 
   ResponsiveContainer,
   PieChart,
@@ -20,8 +20,8 @@ import {
 const Reports = () => {
   const [dateRange, setDateRange] = useState("This Week");
   const [course, setCourse] = useState("All Branches");
-  const [weeklyData, setWeeklyData] = useState([]);
-  const [courseData, setCourseData] = useState([]);
+  const [weeklyData, setWeeklyData] = useState<any[]>([]);
+  const [courseData, setCourseData] = useState<any[]>([]);
   const [dailyAggregates, setDailyAggregates] = useState<Record<string, { total_presents: number, total_absents: number }>>({});
 
   const authData = JSON.parse(localStorage.getItem('bioattend-auth') || '{}');
@@ -110,6 +110,42 @@ const Reports = () => {
       // Format for chart based on selected date range
       const chartAggregates: Record<string, { present: number, absent: number }> = {};
       
+      // ==========================================
+      // DYNAMIC PRE-POPULATION OF CHART KEYS
+      // ==========================================
+      if (dateRange === "Today") {
+        chartAggregates["Today"] = { present: 0, absent: 0 };
+      } else if (dateRange === "This Week") {
+        const weekdays = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+        const currentDayIndex = today.getDay();
+        // Displays weekdays up to the current day of the week
+        for (let i = 0; i <= currentDayIndex; i++) {
+          chartAggregates[weekdays[i]] = { present: 0, absent: 0 };
+        }
+      } else if (dateRange === "This Month") {
+        const dayOfMonth = today.getDate();
+        let maxWeek = 1;
+        
+        // Dynamically calculate which week range to generate up to
+        if (dayOfMonth <= 7) maxWeek = 1;
+        else if (dayOfMonth <= 14) maxWeek = 2;
+        else if (dayOfMonth <= 21) maxWeek = 3;
+        else maxWeek = 4;
+
+        for (let i = 1; i <= maxWeek; i++) {
+          chartAggregates[`Week ${i}`] = { present: 0, absent: 0 };
+        }
+      } else if (dateRange === "This Semester") {
+        const currentMonth = today.getMonth();
+        const startMonthIndex = currentMonth < 6 ? 0 : 6;
+        for (let i = startMonthIndex; i <= currentMonth; i++) {
+          const tempDate = new Date(today.getFullYear(), i, 1);
+          const monthLabel = tempDate.toLocaleDateString('en-US', { month: 'short' });
+          chartAggregates[monthLabel] = { present: 0, absent: 0 };
+        }
+      }
+
+      // Map values to chart labels
       filteredData.forEach(record => {
         if (!record || !record.date) return;
         const recordDate = new Date(record.date);
@@ -129,6 +165,7 @@ const Reports = () => {
           label = recordDate.toLocaleDateString('en-US', { month: 'short' });
         }
 
+        // Initialize label dynamically if record falls outside pre-populated range
         if (!chartAggregates[label]) {
           chartAggregates[label] = { present: 0, absent: 0 };
         }
@@ -180,7 +217,7 @@ const Reports = () => {
     fetchWeeklyAttendance();
   }, [dateRange, course]);
 
-  // REAL-TIME SUBSCRIPTION (key fix)
+  // REAL-TIME SUBSCRIPTION
   useEffect(() => {
     const attendanceSubscription = supabase
       .channel('attendance_changes_reports')
@@ -193,7 +230,7 @@ const Reports = () => {
     return () => {
       attendanceSubscription.unsubscribe();
     };
-  }, [currentCollege]); // Resubscribe if college changes
+  }, [currentCollege]);
 
   const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#8884D8"];
 
@@ -339,14 +376,14 @@ const Reports = () => {
           </div>
         </div>
 
-        {/* Attendance Summary - NOW REAL-TIME */}
+        {/* Attendance Summary */}
         <div className="bg-white p-6 rounded-xl shadow-sm">
           <h2 className="text-xl font-bold text-gray-800 mb-6">Attendance Summary</h2>
           <div className="space-y-4">
             <div className="flex justify-between items-center p-4 bg-gray-50 rounded-lg">
               <div className="flex items-center">
                 <Users className="text-blue-500 mr-3" size={20} />
-                <span className="font-medium">Total Attendence</span>
+                <span className="font-medium">Total Attendance</span>
               </div>
               <span className="text-xl font-bold">
                 {courseData.reduce((sum, course) => sum + course.totalStudents, 0)}
@@ -364,7 +401,7 @@ const Reports = () => {
                   : 0}%
               </span>
             </div>
-                        <div className="flex justify-between items-center p-4 bg-red-50 rounded-lg">
+            <div className="flex justify-between items-center p-4 bg-red-50 rounded-lg">
               <div className="flex items-center">
                 <BarChart3 className="text-red-500 mr-3" size={20} />
                 <span className="font-medium">Total Present</span>
