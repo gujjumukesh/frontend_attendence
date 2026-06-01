@@ -18,6 +18,7 @@ import {
 } from "recharts";
 
 const Reports = () => {
+  // Option states: "Today" | "This Week" | "One Month" | "Semester"
   const [dateRange, setDateRange] = useState("This Week");
   const [course, setCourse] = useState("All Branches");
   const [weeklyData, setWeeklyData] = useState<any[]>([]);
@@ -47,11 +48,11 @@ const Reports = () => {
           weekEnd.setDate(today.getDate() - today.getDay() + 6);
           endDate = weekEnd.toISOString().split('T')[0];
           break;
-        case "This Month":
+        case "One Month":
           startDate = new Date(today.getFullYear(), today.getMonth(), 1).toISOString().split('T')[0];
           endDate = new Date(today.getFullYear(), today.getMonth() + 1, 0).toISOString().split('T')[0];
           break;
-        case "This Semester":
+        case "Semester":
           const currentMonth = today.getMonth();
           const semesterStart = new Date(today.getFullYear(), currentMonth < 6 ? 0 : 6, 1);
           const semesterEnd = new Date(today.getFullYear(), currentMonth < 6 ? 5 : 11, 31);
@@ -122,11 +123,11 @@ const Reports = () => {
         for (let i = 0; i <= currentDayIndex; i++) {
           chartAggregates[weekdays[i]] = { present: 0, absent: 0 };
         }
-      } else if (dateRange === "This Month") {
+      } else if (dateRange === "One Month") {
         const dayOfMonth = today.getDate();
         let maxWeek = 1;
         
-        // Dynamically calculate which week range to generate up to
+        // Dynamically calculate which week range to generate up to based on the date
         if (dayOfMonth <= 7) maxWeek = 1;
         else if (dayOfMonth <= 14) maxWeek = 2;
         else if (dayOfMonth <= 21) maxWeek = 3;
@@ -135,7 +136,7 @@ const Reports = () => {
         for (let i = 1; i <= maxWeek; i++) {
           chartAggregates[`Week ${i}`] = { present: 0, absent: 0 };
         }
-      } else if (dateRange === "This Semester") {
+      } else if (dateRange === "Semester") {
         const currentMonth = today.getMonth();
         const startMonthIndex = currentMonth < 6 ? 0 : 6;
         for (let i = startMonthIndex; i <= currentMonth; i++) {
@@ -145,7 +146,7 @@ const Reports = () => {
         }
       }
 
-      // Map values to chart labels
+      // Map database values to correct chart labels
       filteredData.forEach(record => {
         if (!record || !record.date) return;
         const recordDate = new Date(record.date);
@@ -155,17 +156,17 @@ const Reports = () => {
           label = "Today";
         } else if (dateRange === "This Week") {
           label = recordDate.toLocaleDateString('en-US', { weekday: 'long' });
-        } else if (dateRange === "This Month") {
+        } else if (dateRange === "One Month") {
           const day = recordDate.getDate();
           if (day <= 7) label = 'Week 1';
           else if (day <= 14) label = 'Week 2';
           else if (day <= 21) label = 'Week 3';
           else label = 'Week 4';
-        } else if (dateRange === "This Semester") {
+        } else if (dateRange === "Semester") {
           label = recordDate.toLocaleDateString('en-US', { month: 'short' });
         }
 
-        // Initialize label dynamically if record falls outside pre-populated range
+        // Initialize label dynamically if records fall outside pre-populated range
         if (!chartAggregates[label]) {
           chartAggregates[label] = { present: 0, absent: 0 };
         }
@@ -252,10 +253,10 @@ const Reports = () => {
                 value={dateRange}
                 onChange={(e) => setDateRange(e.target.value)}
               >
-                <option>Today</option>
-                <option>This Week</option>
-                <option>This Month</option>
-                <option>This Semester</option>
+                <option value="Today">Today</option>
+                <option value="This Week">This Week</option>
+                <option value="One Month">One Month</option>
+                <option value="Semester">Semester</option>
               </select>
             </div>
 
@@ -328,7 +329,7 @@ const Reports = () => {
         </div>
       </div>
 
-      {/* Weekly Attendance Chart */}
+      {/* Attendance Overview Chart */}
       <div className="bg-white p-6 rounded-xl shadow-sm">
         <h2 className="text-xl font-bold text-gray-800 mb-6">Attendance Overview</h2>
         <div className="h-80">
@@ -350,7 +351,7 @@ const Reports = () => {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Course-wise Attendance */}
+        {/* Course-wise Distribution */}
         <div className="bg-white p-6 rounded-xl shadow-sm">
           <h2 className="text-xl font-bold text-gray-800 mb-6">Branch-wise Distribution</h2>
           <div className="h-64">
@@ -376,7 +377,7 @@ const Reports = () => {
           </div>
         </div>
 
-        {/* Attendance Summary */}
+        {/* Attendance Summary Panel */}
         <div className="bg-white p-6 rounded-xl shadow-sm">
           <h2 className="text-xl font-bold text-gray-800 mb-6">Attendance Summary</h2>
           <div className="space-y-4">
@@ -401,6 +402,7 @@ const Reports = () => {
                   : 0}%
               </span>
             </div>
+            
             <div className="flex justify-between items-center p-4 bg-red-50 rounded-lg">
               <div className="flex items-center">
                 <BarChart3 className="text-red-500 mr-3" size={20} />
