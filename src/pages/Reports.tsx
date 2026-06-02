@@ -178,11 +178,26 @@ const Reports = () => {
         }
       });
 
+      // Convert aggregates to an array
       const formattedWeeklyData = Object.entries(chartAggregates).map(([label, stats]) => ({
         label: label,
         present: stats.present,
         absent: stats.absent
       }));
+
+      // ==========================================
+      // GUARANTEED CHRONOLOGICAL SORTING
+      // ==========================================
+      if (dateRange === "This Week") {
+        const weekdayOrder = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+        formattedWeeklyData.sort((a, b) => weekdayOrder.indexOf(a.label) - weekdayOrder.indexOf(b.label));
+      } else if (dateRange === "One Month") {
+        const weekOrder = ["Week 1", "Week 2", "Week 3", "Week 4"];
+        formattedWeeklyData.sort((a, b) => weekOrder.indexOf(a.label) - weekOrder.indexOf(b.label));
+      } else if (dateRange === "Semester") {
+        const monthOrder = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+        formattedWeeklyData.sort((a, b) => monthOrder.indexOf(a.label) - monthOrder.indexOf(b.label));
+      }
 
       setWeeklyData(formattedWeeklyData);
 
